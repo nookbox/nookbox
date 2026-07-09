@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+apps/server/openapi.json
+.turbo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
