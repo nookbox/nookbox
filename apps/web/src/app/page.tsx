@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ServerStatus } from '@/components/server-status';
+import { LoginButton } from '@/components/shared/buttons/login-button';
 
 export default function Home() {
   return (
@@ -24,7 +25,10 @@ export default function Home() {
         <p className="text-muted-foreground max-w-md text-lg">
           Next.js + NestJS 모노레포 세팅 완료
         </p>
-        <Button size="lg">시작하기</Button>
+        <div className="flex items-center gap-3">
+          <Button size="lg">시작하기</Button>
+          <LoginButton />
+        </div>
         <ServerStatus />
       </div>
     </main>

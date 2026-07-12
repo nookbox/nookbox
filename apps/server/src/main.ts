@@ -1,12 +1,40 @@
 import { NestFactory } from '@nestjs/core';
+import { type NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { toNodeHandler } from 'better-auth/node';
+import cookieParser from 'cookie-parser';
+import { Logger } from 'nestjs-pino';
 import { writeFileSync } from 'node:fs';
 import { AppModule } from './app.module';
+import { auth } from './lib/auth';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+    bufferLogs: true,
+  });
 
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000' });
+  app.useLogger(app.get(Logger));
+
+  const corsOrigins = [
+    ...new Set(
+      (
+        process.env.CORS_ORIGIN ??
+        process.env.WEB_ORIGIN ??
+        'http://localhost:3000'
+      )
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ];
+  app.enableCors({ origin: corsOrigins, credentials: true });
+
+  // /api/auth/* 는 전부 better-auth가 처리(로그인·콜백·세션·로그아웃).
+  app.use('/api/auth', toNodeHandler(auth));
+  app.use(cookieParser());
+  app.useBodyParser('json');
+  app.useBodyParser('urlencoded', { extended: true });
 
   const config = new DocumentBuilder()
     .setTitle('Nookbox API')
@@ -15,7 +43,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   // UI: /api-docs, spec JSON: /api-docs-json (hey-api가 읽음)
   SwaggerModule.setup('api-docs', app, document);
-  // ponytail: dev 편의로 스펙을 파일로도 떨궈 hey-api가 서버 안 띄워도 읽게 함
   writeFileSync('openapi.json', JSON.stringify(document, null, 2));
 
   await app.listen(process.env.PORT ?? 4000);

@@ -1,0 +1,12 @@
+import { genericOAuthClient } from 'better-auth/client/plugins';
+import { createAuthClient } from 'better-auth/react';
+
+export const authClient = createAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000', // RP 백엔드
+  plugins: [genericOAuthClient()],
+  sessionOptions: {
+    refetchInterval: 0,
+    refetchOnWindowFocus: true,
+    refetchWhenOffline: false,
+  },
+});
