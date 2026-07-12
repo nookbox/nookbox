@@ -9,7 +9,6 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-// Role union('USER' | 'ADMIN')과 동일. shared/types/role.ts, UserResDto와 값이 일치해야 한다.
 export const userRoleEnum = pgEnum('user_role', ['USER', 'ADMIN']);
 
 export const users = pgTable('users', {

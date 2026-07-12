@@ -1,11 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-/**
- * 응답 스키마는 JSON 직렬화 이후의 "와이어 포맷"을 모델링한다.
- * Drizzle은 `Date` 객체를 돌려주지만 HTTP 응답에서는 ISO 문자열이 되므로
- * 날짜 필드는 `z.string()`으로 둔다.
- */
 export const profileResSchema = z.object({
   userId: z.string(),
   nickname: z.string().nullable(),
