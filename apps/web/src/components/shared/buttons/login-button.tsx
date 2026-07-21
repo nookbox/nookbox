@@ -25,27 +25,32 @@ export function LoginButton({ className }: { className?: string }) {
   const isUser = Boolean(session?.user);
 
   const handleLogin = async () => {
-    if (!isUser) {
-      // 성공 시 better-auth가 알아서 IdP로 리다이렉트. 실패면 res.error로 토스트.
-      const res = await authClient.signIn.oauth2({
-        providerId: 'nook-auth',
-        callbackURL: getAuthCallbackURL(),
-      });
+    try {
+      if (!isUser) {
+        // 성공 시 better-auth가 알아서 IdP로 리다이렉트.
+        const res = await authClient.signIn.oauth2({
+          providerId: 'nook-auth',
+          callbackURL: getAuthCallbackURL(),
+        });
 
-      if (res.error) {
-        const { status, statusText, message } = res.error;
-        console.error(
-          `OAuth sign-in failed [${status} ${statusText}]: ${message ?? '알 수 없는 오류'}`,
-        );
-        toast.error(
-          status >= 500
-            ? '인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'
-            : '로그인에 실패했어요. 다시 시도해주세요.',
-        );
+        if (res.error) {
+          const { status, statusText, message } = res.error;
+          console.error(
+            `OAuth sign-in failed [${status} ${statusText}]: ${message ?? '알 수 없는 오류'}`,
+          );
+          toast.error(
+            status >= 500
+              ? '인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'
+              : '로그인에 실패했어요. 다시 시도해주세요.',
+          );
+        }
+      } else {
+        await authClient.signOut();
+        router.refresh();
       }
-    } else {
-      await authClient.signOut();
-      router.refresh();
+    } catch (error) {
+      console.error('Auth request failed:', error);
+      toast.error('인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.');
     }
   };
 
