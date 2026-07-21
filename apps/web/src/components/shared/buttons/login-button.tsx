@@ -62,7 +62,7 @@ export function LoginButton({ className }: { className?: string }) {
   return (
     <Button
       onClick={handleLogin}
-      className={cn('min-w-20 cursor-pointer', className)}
+      className={cn('min-w-20', className)}
       disabled={!!isPending}
     >
       {LoginButtonText()}

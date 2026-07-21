@@ -18,7 +18,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
     <Link
       href={href}
       aria-current={pathname === href ? 'page' : undefined}
-      className="text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground rounded-full px-4 py-3 text-sm font-normal transition-colors aria-[current=page]:bg-white/20 aria-[current=page]:font-medium"
+      className="text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground rounded-full px-4 py-3 text-sm font-normal transition-colors hover:bg-white/8 aria-[current=page]:bg-white/20 aria-[current=page]:font-medium"
     >
       {label}
     </Link>
@@ -47,7 +47,7 @@ export function Nav() {
         ))}
       </ul>
 
-      <LoginButton className="ml-auto" />
+      <LoginButton className="ml-auto bg-gradient-to-r from-cyan-400 via-violet-500 to-pink-500 transition-[filter] hover:brightness-110" />
     </nav>
   );
 }
