@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { authClient } from '@/lib/auth-client';
+import { cn } from '@/lib/utils';
 
 function getCurrentPath(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -17,7 +18,7 @@ function getAuthCallbackURL(): string {
   return callbackUrl.toString();
 }
 
-export function LoginButton() {
+export function LoginButton({ className }: { className?: string }) {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
@@ -61,9 +62,8 @@ export function LoginButton() {
   return (
     <Button
       onClick={handleLogin}
-      className="min-w-20 cursor-pointer"
+      className={cn('min-w-20 cursor-pointer', className)}
       disabled={!!isPending}
-      variant="outline"
     >
       {LoginButtonText()}
     </Button>

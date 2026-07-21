@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation';
 
 import { LoginButton } from '@/components/shared/buttons/login-button';
 
-const LINKS = [{ href: '/', label: '홈' }];
+const LINKS = [
+  { href: '/', label: '홈' },
+  { href: '/test', label: '테스트' },
+];
 
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
@@ -15,7 +18,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
     <Link
       href={href}
       aria-current={pathname === href ? 'page' : undefined}
-      className="text-sm text-zinc-400 transition-colors hover:text-white aria-[current=page]:text-white"
+      className="text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground rounded-full px-4 py-3 text-sm font-normal transition-colors aria-[current=page]:bg-white/20 aria-[current=page]:font-medium"
     >
       {label}
     </Link>
@@ -24,7 +27,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export function Nav() {
   return (
-    <nav className="flex items-center gap-8 px-6 py-4">
+    <nav className="bg-background font-pretendard flex items-center gap-6 px-6 py-5">
       <Link href="/">
         <Image
           src="/logo.png"
@@ -36,7 +39,7 @@ export function Nav() {
         />
       </Link>
 
-      <ul className="flex gap-6">
+      <ul className="flex gap-2">
         {LINKS.map((link) => (
           <li key={link.href}>
             <NavLink {...link} />
@@ -44,9 +47,7 @@ export function Nav() {
         ))}
       </ul>
 
-      <div className="ml-auto">
-        <LoginButton />
-      </div>
+      <LoginButton className="ml-auto" />
     </nav>
   );
 }
