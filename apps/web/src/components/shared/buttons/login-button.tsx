@@ -18,6 +18,18 @@ function getAuthCallbackURL(): string {
   return callbackUrl.toString();
 }
 
+function notifyAuthError(error: unknown, fallbackMessage: string) {
+  console.error('Auth request failed:', error);
+
+  // 서버가 죽으면 status 없이 throw한다.
+  const { status } = error as { status?: number };
+  toast.error(
+    !status || status >= 500
+      ? '인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'
+      : fallbackMessage,
+  );
+}
+
 export function LoginButton({ className }: { className?: string }) {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
@@ -26,31 +38,24 @@ export function LoginButton({ className }: { className?: string }) {
 
   const handleLogin = async () => {
     try {
-      if (!isUser) {
-        // 성공 시 better-auth가 알아서 IdP로 리다이렉트.
-        const res = await authClient.signIn.oauth2({
-          providerId: 'nook-auth',
-          callbackURL: getAuthCallbackURL(),
-        });
+      // 성공 시 better-auth가 알아서 IdP로 리다이렉트.
+      const { error } = await authClient.signIn.oauth2({
+        providerId: 'nook-auth',
+        callbackURL: getAuthCallbackURL(),
+      });
 
-        if (res.error) {
-          const { status, statusText, message } = res.error;
-          console.error(
-            `OAuth sign-in failed [${status} ${statusText}]: ${message ?? '알 수 없는 오류'}`,
-          );
-          toast.error(
-            status >= 500
-              ? '인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'
-              : '로그인에 실패했어요. 다시 시도해주세요.',
-          );
-        }
-      } else {
-        await authClient.signOut();
-        router.refresh();
-      }
+      if (error) throw error;
     } catch (error) {
-      console.error('Auth request failed:', error);
-      toast.error('인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.');
+      notifyAuthError(error, '로그인에 실패했어요. 다시 시도해주세요.');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+      router.refresh();
+    } catch (error) {
+      notifyAuthError(error, '로그아웃에 실패했어요. 다시 시도해주세요.');
     }
   };
 
@@ -66,7 +71,7 @@ export function LoginButton({ className }: { className?: string }) {
 
   return (
     <Button
-      onClick={handleLogin}
+      onClick={isUser ? handleLogout : handleLogin}
       className={cn('min-w-20', className)}
       disabled={!!isPending}
     >
