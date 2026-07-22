@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { LoginButton } from '@/components/shared/buttons/login-button';
+import { PropsWithChildren } from 'react';
 
 const LINKS = [
   { href: '/', label: '홈' },
@@ -25,7 +25,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export function Nav() {
+export function Nav({ children }: PropsWithChildren) {
   return (
     <nav className="bg-background font-pretendard flex items-center gap-6 px-6 py-5">
       <Link href="/">
@@ -47,7 +47,11 @@ export function Nav() {
         ))}
       </ul>
 
-      <LoginButton className="ml-auto bg-gradient-to-r from-cyan-400 via-violet-500 to-pink-500 transition-[filter] hover:brightness-110" />
+      {children}
     </nav>
   );
 }
+
+Nav.Right = function NavRight({ children }: PropsWithChildren) {
+  return <div className="ml-auto flex items-center gap-2">{children}</div>;
+};
