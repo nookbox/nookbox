@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { toNodeHandler } from 'better-auth/node';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { writeFileSync } from 'node:fs';
 import { AppModule } from './app.module';
 import { auth } from './lib/auth';
@@ -40,7 +41,9 @@ async function bootstrap() {
     .setTitle('Nookbox API')
     .setVersion('0.1.0')
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+  // nestjs-zod가 3.1 문법(type: "null")을 섞어 넣는데 문서는 3.0으로 선언된다.
+  // cleanupOpenApiDoc이 nullable: true 로 정리해줘야 클라 타입이 string | null 로 나온다.
+  const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
   // UI: /api-docs, spec JSON: /api-docs-json (hey-api가 읽음)
   SwaggerModule.setup('api-docs', app, document);
   writeFileSync('openapi.json', JSON.stringify(document, null, 2));

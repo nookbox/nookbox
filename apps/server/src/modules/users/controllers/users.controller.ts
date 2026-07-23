@@ -38,7 +38,6 @@ export class UsersController {
 
     const { profile, ...rest } = userInfo;
 
-    // 와이어 계약(UserResDto)에 맞춰 닉네임은 프로필에서 끌어올린다.
     return {
       ...rest,
       nickname: profile?.nickname ?? null,

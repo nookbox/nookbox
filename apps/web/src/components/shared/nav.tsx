@@ -52,6 +52,8 @@ export function Nav({ children }: PropsWithChildren) {
   );
 }
 
-Nav.Right = function NavRight({ children }: PropsWithChildren) {
+// 'use client' 모듈의 정적 프로퍼티(Nav.Right)는 서버 컴포넌트에서 참조하면
+// undefined가 된다. 서버 레이아웃에서 쓰려면 별도 export여야 한다.
+export function NavRight({ children }: PropsWithChildren) {
   return <div className="ml-auto flex items-center gap-2">{children}</div>;
-};
+}

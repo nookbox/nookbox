@@ -4,6 +4,8 @@ import { defineConfig } from '@hey-api/openapi-ts';
 // 스펙 갱신: 서버 한번 실행 → `pnpm --filter @nookbox/web gen:api`
 export default defineConfig({
   input: '../server/openapi.json',
-  output: 'src/client',
-  plugins: ['@hey-api/client-fetch', '@hey-api/typescript', '@hey-api/sdk'],
+  // BFF 패턴(lib/api/server.ts, 서버 전용 fetch + 쿠키 포워딩)을 쓰므로
+  // SDK/HTTP 클라이언트는 생성하지 않고 타입만 생성한다.
+  output: 'src/lib/api/generated',
+  plugins: ['@hey-api/typescript'],
 });

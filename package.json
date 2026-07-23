@@ -17,5 +17,8 @@
   "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "react-hook-form": "7.76.1"
   }
 }

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
+import { getSafeRedirectPath } from '@/lib/utils/get-safe-redirect-path';
 
 // 에러 코드 → 사용자 안내. 대부분 "다시 로그인"으로 복구되는 시간초과/state 문제.
 const MESSAGES: Record<string, string> = {
@@ -14,14 +15,21 @@ const MESSAGES: Record<string, string> = {
 };
 
 export function AuthError() {
-  const error = useSearchParams().get('error') ?? '';
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error') ?? '';
   const message =
     MESSAGES[error] ?? '로그인 중 문제가 발생했어요. 다시 시도해주세요.';
+  // 세션 만료로 튕겨온 경우 원래 보던 경로가 from에 실려온다.
+  const redirectTo = getSafeRedirectPath(
+    searchParams.get('from') ?? undefined,
+    '/',
+    '/auth',
+  );
 
   const retry = async () => {
     const res = await authClient.signIn.oauth2({
       providerId: 'nook-auth',
-      callbackURL: `${window.location.origin}/auth/callback?redirect_to=%2F`,
+      callbackURL: `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent(redirectTo)}`,
     });
     if (res.error) window.location.href = '/';
   };

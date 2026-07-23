@@ -16,6 +16,8 @@ async function request<T>(
 ): Promise<T> {
   const { json, headers, ...rest } = opts;
   const cookie = (await nextHeaders()).get('cookie') ?? '';
+  // FormData는 그대로 보낸다. content-type을 직접 붙이면 boundary가 빠져 파싱이 깨짐.
+  const isForm = json instanceof FormData;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
@@ -23,13 +25,26 @@ async function request<T>(
     ...rest,
     headers: {
       cookie,
-      ...(json !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(json !== undefined && !isForm
+        ? { 'content-type': 'application/json' }
+        : {}),
       ...headers,
     },
-    body: json !== undefined ? JSON.stringify(json) : undefined,
+    body: isForm
+      ? (json as FormData)
+      : json !== undefined
+        ? JSON.stringify(json)
+        : undefined,
   });
 
-  if (res.status === 401) redirect('/auth/error?error=session_expired');
+  if (res.status === 401) {
+    // proxy.ts가 심어준 현재 경로. 재로그인 후 원래 보던 곳으로 돌려보낸다.
+    const from = (await nextHeaders()).get('x-pathname');
+    redirect(
+      `/auth/error?error=session_expired` +
+        (from ? `&from=${encodeURIComponent(from)}` : ''),
+    );
+  }
   if (res.status === 403) throw new ForbiddenError();
   if (!res.ok) throw new Error(`API ${method} ${path} → ${res.status}`);
 
@@ -38,7 +53,7 @@ async function request<T>(
   return (text ? JSON.parse(text) : undefined) as T; // 200+빈응답 = undefined
 }
 
-export const serverApi = {
+export const api = {
   get: <T>(p: string, o?: Options) => request<T>('GET', p, o),
   post: <T>(p: string, json?: unknown, o?: Options) =>
     request<T>('POST', p, { ...o, json }),
