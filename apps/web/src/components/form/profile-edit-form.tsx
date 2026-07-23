@@ -33,6 +33,7 @@ import { useRouter } from 'next/navigation';
 import { AvatarInput } from './avatar-input';
 import { updateProfileAction } from './profile-actions';
 import type { ProfileResDto } from '@/lib/api/generated';
+import { useEffect } from 'react';
 
 const profileSchema = z.object({
   // 기존 이미지는 URL(string), 새로 고른 이미지는 File 로 들어온다.
@@ -105,38 +106,42 @@ export function ProfileEditForm({ mode = 'edit', profile }: Props) {
       ? '닉네임과 소갯말을 설정해주세요'
       : '닉네임 또는 소갯말을 수정 할 수 있어요.';
 
+  useEffect(() => {
+    form.setFocus('nickname');
+  }, []);
+
   return (
-    <Card className='w-full sm:max-w-md'>
-      <CardHeader className='max-md:hidden'>
+    <Card className="w-full sm:max-w-md">
+      <CardHeader className="max-md:hidden">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
-      <CardContent className='flex flex-col gap-6'>
-        <div className='flex justify-center'>
+      <CardContent className="flex flex-col gap-6">
+        <div className="flex justify-center">
           <Controller
-            name='avatar'
+            name="avatar"
             control={form.control}
             render={({ field }) => <AvatarInput {...field} />}
           />
         </div>
 
-        <form id='profile-edit-form' onSubmit={form.handleSubmit(onSubmit)}>
+        <form id="profile-edit-form" onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
             <Controller
-              name='nickname'
+              name="nickname"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='profile-edit-nickname'>
+                  <FieldLabel htmlFor="profile-edit-nickname">
                     닉네임
                   </FieldLabel>
                   <Input
                     {...field}
-                    id='profile-edit-nickname'
+                    id="profile-edit-nickname"
                     aria-invalid={fieldState.invalid}
-                    placeholder='닉네임을 입력하세요'
-                    autoComplete='off'
+                    placeholder="닉네임을 입력하세요"
+                    autoComplete="off"
                   />
                   <FieldDescription>2~20자로 입력해주세요.</FieldDescription>
                   {fieldState.invalid && (
@@ -147,22 +152,22 @@ export function ProfileEditForm({ mode = 'edit', profile }: Props) {
             />
 
             <Controller
-              name='bio'
+              name="bio"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='profile-edit-bio'>소개</FieldLabel>
+                  <FieldLabel htmlFor="profile-edit-bio">소개</FieldLabel>
                   <InputGroup>
                     <InputGroupTextarea
                       {...field}
-                      id='profile-edit-bio'
-                      placeholder='자신을 간단히 소개해보세요.'
+                      id="profile-edit-bio"
+                      placeholder="자신을 간단히 소개해보세요."
                       rows={5}
-                      className='max-h-24 min-h-24 resize-none overflow-auto'
+                      className="max-h-24 min-h-24 resize-none overflow-auto"
                       aria-invalid={fieldState.invalid}
                     />
-                    <InputGroupAddon align='block-end'>
-                      <InputGroupText className='tabular-nums'>
+                    <InputGroupAddon align="block-end">
+                      <InputGroupText className="tabular-nums">
                         <span
                           className={`${field.value.length > 160 ? 'text-destructive' : ''}`}
                         >
@@ -183,20 +188,20 @@ export function ProfileEditForm({ mode = 'edit', profile }: Props) {
       </CardContent>
 
       <CardFooter>
-        <Field orientation='horizontal' className='gap-3'>
+        <Field orientation="horizontal" className="gap-3">
           <Button
-            type='button'
-            variant='outline'
-            className='h-11 flex-1'
+            type="button"
+            variant="outline"
+            className="h-11 flex-1"
             onClick={() => handleCancel()}
             disabled={isSubmitting}
           >
             취소
           </Button>
           <Button
-            type='submit'
-            form='profile-edit-form'
-            className='h-11 flex-1'
+            type="submit"
+            form="profile-edit-form"
+            className="h-11 flex-1"
             disabled={isSubmitting}
           >
             저장
