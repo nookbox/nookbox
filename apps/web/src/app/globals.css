@@ -132,6 +132,15 @@
       transform: scale(1);
     }
   }
+
+  /* 걷기 스프라이트: 797x151, 8프레임 가로 배열 */
+  --animate-walk: walk 0.8s steps(8) infinite;
+
+  @keyframes walk {
+    to {
+      background-position-x: -800px;
+    }
+  }
 }
 
 @utility profile-tile {

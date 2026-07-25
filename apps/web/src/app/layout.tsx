@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { RouteLoadingOverlay } from '@/components/shared/route-loading-overlay';
 
 const geistSans = Geist({
   variable: '--font-sans',
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="ko" className={`dark ${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <RouteLoadingOverlay />
         <Toaster />
       </body>
     </html>
