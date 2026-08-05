@@ -46,7 +46,11 @@ async function bootstrap() {
   const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
   // UI: /api-docs, spec JSON: /api-docs-json (hey-api가 읽음)
   SwaggerModule.setup('api-docs', app, document);
-  writeFileSync('openapi.json', JSON.stringify(document, null, 2));
+  // openapi.json은 gen:api용 개발 산출물이다. 컨테이너에서는 쓰지 않는다.
+  // (파일시스템이 읽기전용이거나 non-root로 돌면 여기서 죽는다)
+  if (process.env.NODE_ENV !== 'production') {
+    writeFileSync('openapi.json', JSON.stringify(document, null, 2));
+  }
 
   await app.listen(process.env.PORT ?? 4000);
 }

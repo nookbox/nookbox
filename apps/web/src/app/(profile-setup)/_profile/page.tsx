@@ -4,3 +4,7 @@
 // export default function ProfilePage() {
 //   return <Profile />;
 // }
+
+// 파일 전체가 주석이면 TS가 "is not a module"로 빌드를 막는다.
+// 아래 한 줄이 빈 모듈임을 알려줘서 위 내용을 보존한 채 빌드를 통과시킨다.
+export {};

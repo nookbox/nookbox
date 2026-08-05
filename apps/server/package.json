@@ -31,6 +31,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
+    "multer": "^2.0.0",
     "nestjs-pino": "^4.6.1",
     "nestjs-zod": "^5.4.0",
     "pino-http": "^11.0.0",

@@ -6,5 +6,6 @@ apps/server/openapi.json
 *.log
 .env
 .env.*
-!.env.example
+# 템플릿은 커밋한다(.env.example, .env.prod.example). 값이 든 .env.prod 는 위 줄에서 걸린다.
+!.env*.example
 .DS_Store
