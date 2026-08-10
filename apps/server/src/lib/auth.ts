@@ -6,6 +6,7 @@ import { genericOAuth } from 'better-auth/plugins/generic-oauth';
 
 import { db } from '../db';
 import { account, session, users, verification } from '../db/schema';
+import { backchannelLogout } from './backchannel-logout';
 
 const providerId = process.env.OIDC_PROVIDER_ID ?? 'nook-auth';
 const port = process.env.PORT ?? '4000';
@@ -55,6 +56,9 @@ export const auth = betterAuth({
   }),
   trustedOrigins,
   advanced: {
+    // 쿠키는 포트를 구분하지 않아 로컬에서 IdP 쿠키와 덮어쓴다.
+    // web 의 RP_COOKIE_PREFIX 와 같아야 한다.
+    cookiePrefix: 'nookbox',
     cookies: {
       // OAuth state 쿠키 수명: 기본 300초(5분)는 로그인+회원가입 완주엔 짧음 → 15분.
       // 이 값을 넘겨 콜백이 오면 state 쿠키가 없어 state_mismatch가 난다.
@@ -82,6 +86,13 @@ export const auth = betterAuth({
           overrideUserInfo: true,
         },
       ],
+    }),
+    // IdP 로그아웃 통지를 받아 nookbox 세션도 끊는다.
+    backchannelLogout({
+      issuer: oidcIssuer,
+      clientId,
+      providerId,
+      postLogoutRedirectUri: frontendUrl,
     }),
   ],
 });
