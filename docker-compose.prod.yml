@@ -134,6 +134,12 @@ services:
       # config.ts 가 BACKEND_URL 을 NEXT_PUBLIC_API_URL 보다 우선한다.
       # 이걸 안 주면 서버 컴포넌트가 공개 주소로 나갔다가 터널을 한 바퀴 돌아 들어온다.
       BACKEND_URL: http://server:4000
+      # ⚠️ 라우트 핸들러가 callbackURL·Origin 헤더를 조립할 때 쓰는 공개 주소.
+      #    컨테이너 안에서는 req.nextUrl.origin 이 https://0.0.0.0:3030 이라 못 쓴다.
+      #    요청 헤더(x-forwarded-host)로 복원하면 클라이언트가 위조할 수 있어
+      #    (cloudflared 는 이 헤더를 덮어쓰지 않는다) 여기서 못박아 넘긴다.
+      #    NEXT_PUBLIC_API_URL 과 값은 같지만 그건 빌드 인자라 별개다.
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
     ports:
       # server 와 같은 이유로 로컬 전용.
       - '127.0.0.1:${WEB_HOST_PORT:-8083}:3030'

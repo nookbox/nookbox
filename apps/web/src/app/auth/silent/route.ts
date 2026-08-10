@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { API_URL } from '@/lib/config';
+import { API_URL, PUBLIC_ORIGIN } from '@/lib/config';
 import { SSO_TRIED_COOKIE, SSO_TRIED_MAX_AGE_SECONDS } from '@/lib/sso';
 import { getSafeRedirectPath } from '@/lib/utils/get-safe-redirect-path';
 
@@ -9,16 +9,19 @@ import { getSafeRedirectPath } from '@/lib/utils/get-safe-redirect-path';
  *
  * ⚠️ req.nextUrl.origin 은 컨테이너에서 https://0.0.0.0:3030 이 나온다.
  *    trustedOrigins 에 없어 403 → silent SSO 가 조용히 실패한다.
+ *    그래서 운영에서는 PUBLIC_ORIGIN 을 못박아 쓴다.
+ *
+ * ⚠️ x-forwarded-host 로 복원하지 않는다. 클라이언트가 위조할 수 있는 헤더인데
+ *    앞단 cloudflared 는 이걸 덮어쓰지 않는다. 아래 폴백은 프록시가 없는
+ *    로컬 개발용이다.
  */
 function publicOrigin(req: NextRequest): string {
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host'); // 사용자가 실제로 친 도메인
+  if (PUBLIC_ORIGIN) return PUBLIC_ORIGIN;
+
+  const host = req.headers.get('host');
   if (!host) return req.nextUrl.origin;
 
-  const proto =
-    req.headers.get('x-forwarded-proto') ??
-    req.nextUrl.protocol.replace(':', ''); // 원래 프로토콜(https)
-
-  return `${proto}://${host}`;
+  return `${req.nextUrl.protocol.replace(':', '')}://${host}`;
 }
 
 /**
