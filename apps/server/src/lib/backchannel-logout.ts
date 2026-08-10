@@ -1,10 +1,22 @@
-import { createAuthEndpoint, sessionMiddleware } from 'better-auth/api';
+import {
+  APIError,
+  createAuthEndpoint,
+  sessionMiddleware,
+} from 'better-auth/api';
 import type { BetterAuthPlugin } from 'better-auth';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import * as z from 'zod';
 
 const BACKCHANNEL_LOGOUT_EVENT =
   'http://schemas.openid.net/event/backchannel-logout';
+
+/**
+ * ⚠️ ctx.json(body, { status: 400 }) 은 먹지 않는다. better-call 이 두 번째
+ *    인자를 버려서 200 이 나가고, IdP 는 통지가 성공한 줄 안다. APIError 필수.
+ */
+function reject(): APIError {
+  return new APIError('BAD_REQUEST', { error: 'invalid_request' });
+}
 
 interface BackchannelLogoutOptions {
   issuer: string;
@@ -49,23 +61,23 @@ export const backchannelLogout = (
               '[backchannel-logout] logout_token 검증 실패',
               error,
             );
-            return ctx.json({ error: 'invalid_request' }, { status: 400 });
+            throw reject();
           }
 
-          // 스펙 필수 검증. 이게 없으면 탈취한 id_token 을 그대로 들이밀어
-          // 임의 유저를 로그아웃시킬 수 있다(id_token 도 같은 키로 서명된다).
+          // 스펙 필수. 없으면 같은 키로 서명된 id_token 을 들이밀어
+          // 임의 유저를 로그아웃시킬 수 있다.
           const events = payload.events as Record<string, unknown> | undefined;
           if (!events || !(BACKCHANNEL_LOGOUT_EVENT in events)) {
-            return ctx.json({ error: 'invalid_request' }, { status: 400 });
+            throw reject();
           }
-          // logout_token 에는 nonce 가 있으면 안 된다(id_token 과의 구분).
+          // nonce 가 있으면 logout_token 이 아니라 id_token 이다.
           if ('nonce' in payload) {
-            return ctx.json({ error: 'invalid_request' }, { status: 400 });
+            throw reject();
           }
 
           const subject = payload.sub;
           if (!subject) {
-            return ctx.json({ error: 'invalid_request' }, { status: 400 });
+            throw reject();
           }
 
           const linked = await ctx.context.adapter.findOne<{ userId: string }>({
@@ -76,8 +88,7 @@ export const backchannelLogout = (
             ],
           });
 
-          // 이 RP 를 한 번도 안 쓴 유저면 지울 게 없다. 스펙상 성공으로 답한다
-          // (유저 존재 여부를 응답으로 흘리지 않는다).
+          // 모르는 유저여도 성공으로 답한다. 존재 여부를 흘리지 않기 위해.
           if (linked) {
             await ctx.context.internalAdapter.deleteUserSessions(linked.userId);
           }
@@ -103,8 +114,8 @@ export const backchannelLogout = (
             ],
           });
 
-          // id_token 이 없으면 end_session 을 부를 수 없다(id_token_hint 필수).
-          // 로그아웃 자체는 로컬로 진행되게 null 을 준다.
+          // id_token_hint 가 필수라 없으면 end_session 을 못 부른다.
+          // 로컬 로그아웃만 진행되게 null 을 준다.
           if (!linked?.idToken) {
             return ctx.json({ url: null });
           }

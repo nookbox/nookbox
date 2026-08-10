@@ -1,11 +1,25 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { API_URL } from '@/lib/config';
-import {
-  SSO_TRIED_COOKIE,
-  SSO_TRIED_MAX_AGE_SECONDS,
-} from '@/lib/sso';
+import { SSO_TRIED_COOKIE, SSO_TRIED_MAX_AGE_SECONDS } from '@/lib/sso';
 import { getSafeRedirectPath } from '@/lib/utils/get-safe-redirect-path';
+
+/**
+ * 이 요청이 들어온 공개 오리진.
+ *
+ * ⚠️ req.nextUrl.origin 은 컨테이너에서 https://0.0.0.0:3030 이 나온다.
+ *    trustedOrigins 에 없어 403 → silent SSO 가 조용히 실패한다.
+ */
+function publicOrigin(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host'); // 사용자가 실제로 친 도메인
+  if (!host) return req.nextUrl.origin;
+
+  const proto =
+    req.headers.get('x-forwarded-proto') ??
+    req.nextUrl.protocol.replace(':', ''); // 원래 프로토콜(https)
+
+  return `${proto}://${host}`;
+}
 
 /**
  * Silent SSO 진입점. 미들웨어가 세션 없는 방문자를 여기로 보낸다.
@@ -24,7 +38,8 @@ export async function GET(req: NextRequest) {
     '/auth',
   );
 
-  const fallback = NextResponse.redirect(new URL(redirectTo, req.url));
+  const origin = publicOrigin(req);
+  const fallback = NextResponse.redirect(new URL(redirectTo, origin));
 
   // 성공·실패 관계없이 가드를 심어 무한 리다이렉트를 막는다.
   const setGuard = (response: NextResponse) => {
@@ -32,13 +47,13 @@ export async function GET(req: NextRequest) {
       path: '/',
       maxAge: SSO_TRIED_MAX_AGE_SECONDS,
       sameSite: 'lax',
-      secure: req.nextUrl.protocol === 'https:',
+      secure: origin.startsWith('https://'),
     });
     return response;
   };
 
   try {
-    const callbackURL = new URL('/auth/callback', req.nextUrl.origin);
+    const callbackURL = new URL('/auth/callback', origin);
     callbackURL.searchParams.set('redirect_to', redirectTo);
 
     const response = await fetch(`${API_URL}/api/auth/sign-in/oauth2`, {
@@ -50,12 +65,12 @@ export async function GET(req: NextRequest) {
         //    POST 에 Origin 을 요구하는데 서버 fetch 는 자동으로 안 붙인다.
         //    catch 가 삼켜서 그냥 실패하는 것처럼만 보이니 주의.
         //    RP 의 trustedOrigins 에 들어있어야 한다.
-        origin: req.nextUrl.origin,
+        origin,
       },
       body: JSON.stringify({
         providerId: 'nook-auth',
         callbackURL: callbackURL.toString(),
-        errorCallbackURL: new URL(redirectTo, req.nextUrl.origin).toString(),
+        errorCallbackURL: new URL(redirectTo, origin).toString(),
         disableRedirect: true,
       }),
     });
