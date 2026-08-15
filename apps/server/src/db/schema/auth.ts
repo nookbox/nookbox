@@ -40,8 +40,13 @@ export const session = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // IdP 세션 식별자(id_token.sid). 백채널 로그아웃 통지를 이 세션 하나로 좁힌다.
+    idpSid: text('idp_sid'),
   },
-  (table) => [index('session_userId_idx').on(table.userId)],
+  (table) => [
+    index('session_userId_idx').on(table.userId),
+    index('session_idpSid_idx').on(table.idpSid),
+  ],
 );
 
 export const account = pgTable(

@@ -71,6 +71,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: false,
   },
+  session: {
+    additionalFields: {
+      // backchannel-logout 플러그인이 쓴다. 외부 입력으로는 못 채운다.
+      idpSid: { type: 'string', required: false, input: false },
+    },
+  },
   plugins: [
     genericOAuth({
       config: [

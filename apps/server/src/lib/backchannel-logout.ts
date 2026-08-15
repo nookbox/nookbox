@@ -1,10 +1,16 @@
 import {
   APIError,
   createAuthEndpoint,
+  createAuthMiddleware,
   sessionMiddleware,
 } from 'better-auth/api';
 import type { BetterAuthPlugin } from 'better-auth';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import {
+  createRemoteJWKSet,
+  decodeJwt,
+  jwtVerify,
+  type JWTPayload,
+} from 'jose';
 import * as z from 'zod';
 
 const BACKCHANNEL_LOGOUT_EVENT =
@@ -34,6 +40,48 @@ export const backchannelLogout = (
 
   return {
     id: 'backchannel-logout',
+    /**
+     * 로그인이 방금 끝났으면 id_token 의 sid(IdP 세션 식별자)를 세션 행에 적어둔다.
+     *
+     * 나중에 오는 logout_token 은 sid 하나만 들고 온다. 로그인 때 미리 적어두지
+     * 않으면 어느 세션 행이 그 IdP 세션인지 못 찾아서 유저 세션을 전부 지우게 된다.
+     */
+    hooks: {
+      after: [
+        {
+          // OIDC 콜백 요청일 때만 이 훅을 켠다.
+          matcher: (ctx) => ctx.path?.startsWith('/oauth2/callback') ?? false,
+          handler: createAuthMiddleware(async (ctx) => {
+            // 방금 세션이 새로 생겼나? 아니면 로그인이 아니니 통과.
+            const created = ctx.context.newSession;
+            if (!created) return;
+
+            // id_token 은 훅에 직접 안 넘어온다. 콜백이 방금 account 행에
+            // 써넣었으니 거기서 읽어온다.
+            const linked = await ctx.context.adapter.findOne<{
+              idToken: string | null;
+            }>({
+              model: 'account',
+              where: [
+                { field: 'providerId', value: options.providerId },
+                { field: 'userId', value: created.session.userId },
+              ],
+            });
+            if (!linked?.idToken) return;
+
+            // 서명 검증은 콜백이 이미 했다. 여기선 안에서 sid 값만 꺼내면 된다.
+            const { sid } = decodeJwt(linked.idToken);
+            if (typeof sid !== 'string') return;
+
+            // 방금 만들어진 그 세션 행에 sid 를 기록.
+            await ctx.context.internalAdapter.updateSession(
+              created.session.token,
+              { idpSid: sid },
+            );
+          }),
+        },
+      ],
+    },
     endpoints: {
       backchannelLogout: createAuthEndpoint(
         '/backchannel-logout',
@@ -90,7 +138,29 @@ export const backchannelLogout = (
 
           // 모르는 유저여도 성공으로 답한다. 존재 여부를 흘리지 않기 위해.
           if (linked) {
-            await ctx.context.internalAdapter.deleteUserSessions(linked.userId);
+            const sid = payload.sid;
+
+            if (typeof sid === 'string') {
+              // 끝난 IdP 세션에서 파생된 세션만 끊는다. 다른 기기는 살려둔다.
+              const sessions = await ctx.context.internalAdapter.listSessions(
+                linked.userId,
+              );
+              await Promise.all(
+                sessions
+                  // additionalFields 는 플러그인 밖에서 선언돼 base 타입에 안 뜬다.
+                  .filter(
+                    (s) => (s as { idpSid?: string | null }).idpSid === sid,
+                  )
+                  .map((s) =>
+                    ctx.context.internalAdapter.deleteSession(s.token),
+                  ),
+              );
+            } else {
+              // sid 없는 logout_token 도 스펙상 유효하다. 그땐 좁힐 수가 없다.
+              await ctx.context.internalAdapter.deleteUserSessions(
+                linked.userId,
+              );
+            }
           }
 
           ctx.setHeader('Cache-Control', 'no-store');
