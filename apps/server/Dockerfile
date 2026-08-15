@@ -61,7 +61,12 @@ RUN rm -rf /out/node_modules/.pnpm/next@* \
 # 앱 시작과 분리해서 일회성으로 돌리는 스테이지를 따로 둔다.
 #
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml \
-#     --profile migrate run --rm migrate
+#     --profile migrate run --rm --build migrate
+#
+# ⚠️ --build 를 빼면 안 된다. compose run 은 이미지가 있으면 그대로 쓴다.
+#    스키마는 이 이미지 안에 COPY 된 src 에서 읽으므로, 옛 이미지로 돌리면
+#    옛 스키마와 DB 를 비교해 "No changes detected" 를 내고 조용히 끝난다.
+#    반영된 줄 알고 넘어가기 딱 좋다.
 #
 # ⚠️ 이 레포는 아직 drizzle 마이그레이션 파일(drizzle/)이 없고 push 방식이다.
 #    스키마를 DB에 직접 맞춰버리므로, 컬럼 삭제/타입 변경이 섞이면 데이터가 날아간다.

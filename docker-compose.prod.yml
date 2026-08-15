@@ -16,7 +16,8 @@ name: nookbox-prod
 # 실행:
 #   docker network create nook-edge                      # 최초 1회
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml \
-#     --profile migrate run --rm migrate                 # 스키마 반영
+#     --profile migrate run --rm --build migrate         # 스키마 반영
+#     ↑ --build 필수. 빼면 옛 이미지로 돌아 "No changes detected" 만 뜬다.
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 # =============================================================
 
