@@ -59,13 +59,7 @@ export function LoginButton({ className }: { className?: string }) {
         window.location.protocol === 'https:' ? '; secure' : ''
       }`;
 
-      // better-auth 1.7 의 /sign-out 이 세션을 지우고 IdP end_session URL 까지
-      // 만들어 돌려준다(id_token_hint 포함). 직접 받아올 필요가 없어졌다.
-      // disableRedirect 로 Location 헤더 대신 url 만 받아 우리가 이동한다.
-      const { data } = await authClient.signOut({
-        callbackURL: window.location.origin,
-        disableRedirect: true,
-      });
+      const { data } = await authClient.signOut({ disableRedirect: true });
 
       // IdP 세션까지 끊고 post_logout_redirect_uri 로 돌아온다.
       // 주소가 없으면(id_token 없음 등) 로컬 로그아웃만으로 끝낸다.

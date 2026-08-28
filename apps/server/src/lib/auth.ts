@@ -95,8 +95,7 @@ export const auth = betterAuth({
           scopes: ['openid', 'email', 'profile', 'offline_access'],
           pkce: true,
           overrideUserInfo: true,
-          // /sign-out 이 end_session URL 을 만들어 돌려줄 때 쓴다.
-          postLogoutRedirectURI: frontendUrl,
+          postLogoutRedirectURI: new URL(frontendUrl).toString(),
         },
       ],
     }),
