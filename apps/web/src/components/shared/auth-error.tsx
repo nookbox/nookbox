@@ -27,8 +27,8 @@ export function AuthError() {
   );
 
   const retry = async () => {
-    const res = await authClient.signIn.oauth2({
-      providerId: 'nook-auth',
+    const res = await authClient.signIn.social({
+      provider: 'nook-auth',
       callbackURL: `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent(redirectTo)}`,
     });
     if (res.error) window.location.href = '/';

@@ -44,7 +44,7 @@ const trustedOrigins = [
 ];
 
 export const oauthProviderId = providerId;
-export const oauthCallbackUrl = `${rpBaseUrl}/api/auth/oauth2/callback/${providerId}`;
+export const oauthCallbackUrl = `${rpBaseUrl}/api/auth/callback/${providerId}`;
 
 export const auth = betterAuth({
   appName: 'Nookbox',
@@ -85,20 +85,27 @@ export const auth = betterAuth({
           clientId,
           clientSecret,
           discoveryUrl,
-          issuer: oidcIssuer,
-          requireIssuerValidation: true,
+          // account.issuer 네임스페이스를 env 값으로 못박는다. discovery 가
+          // 보고하는 issuer 를 그대로 쓰면 IdP 설정이 바뀔 때 계정이 갈라진다.
+          // backchannel-logout 플러그인도 이 값으로 account 를 찾는다.
+          accountIssuer: oidcIssuer,
+          // discovery 가 issuer + jwks_uri 를 안 주면 부팅을 막는다.
+          // 1.6 의 requireIssuerValidation 대체.
+          requireIdTokenVerification: true,
           scopes: ['openid', 'email', 'profile', 'offline_access'],
           pkce: true,
           overrideUserInfo: true,
+          // /sign-out 이 end_session URL 을 만들어 돌려줄 때 쓴다.
+          postLogoutRedirectURI: frontendUrl,
         },
       ],
     }),
     // IdP 로그아웃 통지를 받아 nookbox 세션도 끊는다.
+    // (수신은 1.7 코어에도 없어서 계속 직접 구현한다. 발신은 IdP 쪽 몫.)
     backchannelLogout({
       issuer: oidcIssuer,
       clientId,
       providerId,
-      postLogoutRedirectUri: frontendUrl,
     }),
   ],
 });

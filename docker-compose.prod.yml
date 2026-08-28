@@ -79,8 +79,9 @@ services:
       #    web 이 못 읽는다. IdP 에서 이미 겪은 그 증상이다.
       #
       # ⚠️ 이 값이 IdP 에 등록할 redirect_uri 의 근거다:
-      #    <BETTER_AUTH_URL>/api/auth/oauth2/callback/<OIDC_PROVIDER_ID>
+      #    <BETTER_AUTH_URL>/api/auth/callback/<OIDC_PROVIDER_ID>
       #    (apps/server/src/lib/auth.ts 의 oauthCallbackUrl)
+      #    ⚠️ better-auth 1.7 에서 /oauth2/callback/ → /callback/ 로 바뀌었다.
       BETTER_AUTH_URL: ${PUBLIC_ORIGIN}
       WEB_URL: ${PUBLIC_ORIGIN}
       CORS_ORIGIN: ${PUBLIC_ORIGIN}

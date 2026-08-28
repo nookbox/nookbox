@@ -19,31 +19,6 @@ function getAuthCallbackURL(): string {
   return callbackUrl.toString();
 }
 
-/**
- * IdP 로그아웃(end_session) 주소를 백엔드에서 받아온다.
- * (주소에 필요한 id_token 은 서버 account 테이블에만 있다)
- *
- * 실패해도 던지지 않는다. IdP 장애로 로그아웃 자체가 막히면 안 되므로,
- * 그 경우 로컬 로그아웃만 한다.
- */
-async function fetchIdpLogoutLink(): Promise<string | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-
-  try {
-    const response = await fetch(`${apiUrl}/api/auth/idp-logout-link`, {
-      credentials: 'include',
-    });
-
-    if (!response.ok) return null;
-
-    const { url } = (await response.json()) as { url: string | null };
-    return url;
-  } catch (error) {
-    console.error('Failed to resolve IdP logout link:', error);
-    return null;
-  }
-}
-
 function notifyAuthError(error: unknown, fallbackMessage: string) {
   console.error('Auth request failed:', error);
 
@@ -65,8 +40,8 @@ export function LoginButton({ className }: { className?: string }) {
   const handleLogin = async () => {
     try {
       // 성공 시 better-auth가 알아서 IdP로 리다이렉트.
-      const { error } = await authClient.signIn.oauth2({
-        providerId: 'nook-auth',
+      const { error } = await authClient.signIn.social({
+        provider: 'nook-auth',
         callbackURL: getAuthCallbackURL(),
       });
 
@@ -78,21 +53,24 @@ export function LoginButton({ className }: { className?: string }) {
 
   const handleLogout = async () => {
     try {
-      // signOut() 전에 받아야 한다. 세션이 없으면 서버가 id_token 을 못 찾는다.
-      const idpLogoutLink = await fetchIdpLogoutLink();
-
       // 로그아웃 직후 미들웨어의 silent SSO 가 다시 로그인시키는 걸 막는다.
-      // 로컬 로그아웃만 되는 경우(id_token 없음)에 특히 필요하다.
+      // IdP end_session 없이 로컬 로그아웃만 되는 경우에 특히 필요하다.
       document.cookie = `${SSO_TRIED_COOKIE}=1; path=/; max-age=${SSO_TRIED_MAX_AGE_SECONDS}; samesite=lax${
         window.location.protocol === 'https:' ? '; secure' : ''
       }`;
 
-      await authClient.signOut();
+      // better-auth 1.7 의 /sign-out 이 세션을 지우고 IdP end_session URL 까지
+      // 만들어 돌려준다(id_token_hint 포함). 직접 받아올 필요가 없어졌다.
+      // disableRedirect 로 Location 헤더 대신 url 만 받아 우리가 이동한다.
+      const { data } = await authClient.signOut({
+        callbackURL: window.location.origin,
+        disableRedirect: true,
+      });
 
       // IdP 세션까지 끊고 post_logout_redirect_uri 로 돌아온다.
-      // 주소가 없으면 로컬 로그아웃만으로 끝낸다.
-      if (idpLogoutLink) {
-        window.location.href = idpLogoutLink;
+      // 주소가 없으면(id_token 없음 등) 로컬 로그아웃만으로 끝낸다.
+      if (data?.url) {
+        window.location.href = data.url;
         return;
       }
 

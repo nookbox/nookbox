@@ -2,7 +2,6 @@ import {
   APIError,
   createAuthEndpoint,
   createAuthMiddleware,
-  sessionMiddleware,
 } from 'better-auth/api';
 import type { BetterAuthPlugin } from 'better-auth';
 import {
@@ -30,7 +29,6 @@ interface BackchannelLogoutOptions {
   clientId: string;
   /** IdP 에 등록된 provider id */
   providerId: string;
-  postLogoutRedirectUri: string;
 }
 
 export const backchannelLogout = (
@@ -50,7 +48,8 @@ export const backchannelLogout = (
       after: [
         {
           // OIDC 콜백 요청일 때만 이 훅을 켠다.
-          matcher: (ctx) => ctx.path?.startsWith('/oauth2/callback') ?? false,
+          matcher: (ctx) =>
+            ctx.path?.startsWith(`/callback/${options.providerId}`) ?? false,
           handler: createAuthMiddleware(async (ctx) => {
             // 방금 세션이 새로 생겼나? 아니면 로그인이 아니니 통과.
             const created = ctx.context.newSession;
@@ -63,7 +62,7 @@ export const backchannelLogout = (
             }>({
               model: 'account',
               where: [
-                { field: 'providerId', value: options.providerId },
+                { field: 'issuer', value: options.issuer },
                 { field: 'userId', value: created.session.userId },
               ],
             });
@@ -128,12 +127,9 @@ export const backchannelLogout = (
             throw reject();
           }
 
-          const linked = await ctx.context.adapter.findOne<{ userId: string }>({
-            model: 'account',
-            where: [
-              { field: 'providerId', value: options.providerId },
-              { field: 'accountId', value: subject },
-            ],
+          const linked = await ctx.context.internalAdapter.findAccountByKey({
+            issuer: options.issuer,
+            accountId: subject,
           });
 
           // 모르는 유저여도 성공으로 답한다. 존재 여부를 흘리지 않기 위해.
@@ -165,40 +161,6 @@ export const backchannelLogout = (
 
           ctx.setHeader('Cache-Control', 'no-store');
           return ctx.json({ ok: true });
-        },
-      ),
-
-      idpLogoutLink: createAuthEndpoint(
-        '/idp-logout-link',
-        { method: 'GET', use: [sessionMiddleware] },
-        async (ctx) => {
-          const userId = ctx.context.session.user.id;
-
-          const linked = await ctx.context.adapter.findOne<{
-            idToken: string | null;
-          }>({
-            model: 'account',
-            where: [
-              { field: 'providerId', value: options.providerId },
-              { field: 'userId', value: userId },
-            ],
-          });
-
-          // id_token_hint 가 필수라 없으면 end_session 을 못 부른다.
-          // 로컬 로그아웃만 진행되게 null 을 준다.
-          if (!linked?.idToken) {
-            return ctx.json({ url: null });
-          }
-
-          const url = new URL(`${options.issuer}/oauth2/end-session`);
-          url.searchParams.set('id_token_hint', linked.idToken);
-          url.searchParams.set('client_id', options.clientId);
-          url.searchParams.set(
-            'post_logout_redirect_uri',
-            options.postLogoutRedirectUri,
-          );
-
-          return ctx.json({ url: url.toString() });
         },
       ),
     },

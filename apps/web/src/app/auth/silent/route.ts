@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     const callbackURL = new URL('/auth/callback', origin);
     callbackURL.searchParams.set('redirect_to', redirectTo);
 
-    const response = await fetch(`${API_URL}/api/auth/sign-in/oauth2`, {
+    const response = await fetch(`${API_URL}/api/auth/sign-in/social`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         origin,
       },
       body: JSON.stringify({
-        providerId: 'nook-auth',
+        provider: 'nook-auth',
         callbackURL: callbackURL.toString(),
         errorCallbackURL: new URL(redirectTo, origin).toString(),
         disableRedirect: true,
