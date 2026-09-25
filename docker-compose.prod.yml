@@ -21,23 +21,24 @@ name: nookbox-prod
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 #
 # -------------------------------------------------------------
-# ⚠️ better-auth 1.7 최초 배포에 한해, migrate 앞에 백필이 한 번 필요하다.
+# ⚠️ better-auth 1.7.0~1.7.2 를 거친 DB 를 1.7.3+ 로 올릴 때 한 번, migrate 앞에
+#    실행한다. (운영 DB 는 2026-09-26 에 적용 완료. 빈 DB 에서 시작하면 필요 없다.)
 #
-#   1.7 은 account.issuer 를 NOT NULL 로 요구한다. account 에 행이 있는 상태에서
-#   push 가 이 컬럼을 만들면 기본값이 없어 ALTER 가 그냥 실패한다(프롬프트가
-#   아니라 SQL 에러다). nullable 로 먼저 만들고 채운 뒤 push 를 돌린다.
-#   값은 OIDC_ISSUER 와 정확히 같아야 한다 — auth.ts 의 accountIssuer 가
-#   그 값이고, 백채널 로그아웃이 (issuer, account_id) 로 계정을 찾는다.
+#   1.7.0~1.7.2 가 요구하던 account.issuer(NOT NULL)와 (issuer, account_id)
+#   유니크 인덱스를 1.7.3 이 없앴다. 계정은 다시 (provider_id, account_id) 로
+#   찾는다. 새 버전은 issuer 를 쓰지 않으므로 컬럼이 남아 있으면 가입이 막힌다.
+#   push 로 지우면 파괴적 변경 프롬프트에 걸려 멈추니 직접 지운다.
+#   (컬럼을 지우면 인덱스도 같이 사라진다.)
 #
 #     docker compose --env-file .env.prod -f docker-compose.prod.yml \
 #       exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
-#     ALTER TABLE account ADD COLUMN IF NOT EXISTS issuer text;
-#     UPDATE account SET issuer = 'https://id.nook-box.com/api/auth'
-#      WHERE issuer IS NULL;
+#     ALTER TABLE account DROP COLUMN IF EXISTS issuer;
 #     SQL
 #
-#   그 다음 migrate 를 돌리면 NOT NULL 과 (issuer, account_id) 유니크 인덱스만
-#   남아서 깨끗이 지나간다. 두 번째 배포부터는 이 단계가 필요 없다.
+#   그 다음 migrate 를 돌리면 (provider_id, account_id) 유니크 인덱스만 생긴다.
+#
+#   ⚠️ 이제 계정 식별 키는 OIDC_PROVIDER_ID 다. 이 값을 바꾸면 기존 계정과
+#      연결이 끊겨 같은 사람이 새 계정으로 생긴다. 바꾸지 않는다.
 # =============================================================
 
 services:
