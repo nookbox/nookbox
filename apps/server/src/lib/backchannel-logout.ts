@@ -62,7 +62,7 @@ export const backchannelLogout = (
             }>({
               model: 'account',
               where: [
-                { field: 'issuer', value: options.issuer },
+                { field: 'providerId', value: options.providerId },
                 { field: 'userId', value: created.session.userId },
               ],
             });
@@ -128,7 +128,7 @@ export const backchannelLogout = (
           }
 
           const linked = await ctx.context.internalAdapter.findAccountByKey({
-            issuer: options.issuer,
+            providerId: options.providerId,
             accountId: subject,
           });
 
